@@ -83,7 +83,10 @@ def yoro_probe() -> dict[str, Any]:
 
 def status() -> dict[str, Any]:
     """Aliveness 5-tuple + axis scores + in-band summary."""
-    s = api.state()
+    try:
+        s = api.state()
+    except Exception as exc:
+        return {"ok": False, "error": str(exc), "hint": f"viz pod unreachable at {api.VIZ_URL} — is the port-forward running?"}
     a = s["alive"]
     bands = s.get("in_band", {})
     return {

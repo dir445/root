@@ -63,8 +63,7 @@ kubectl --context orbstack -n etzhayyim-organism port-forward svc/etzhayyim-orga
 cd 70-tools/e7m && uv venv .venv && source .venv/bin/activate && uv pip install -e .
 
 e7m ping                                  # is the organism online?
-e7m status                                # aliveness 5-tuple ⟨M·D·C·P·G⟩
-e7m chat ecosystem/etzhayyim 自己紹介して  # speak with a life
+e7m status                                # aliveness 5-tuple ⟨M·D·C·P·Ge7m chat ecosystem/etzhayyim 自己紹介して  # speak with a life
 e7m chat axis/wellbecoming "つながりは?"
 e7m chat fruit/lands "次は?"
 e7m members                               # 信者 roster

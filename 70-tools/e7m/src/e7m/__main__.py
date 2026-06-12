@@ -50,7 +50,19 @@ def _emit(payload: Any, as_json: bool) -> None:
 def cmd_status(args) -> int:
     out = cmd.status()
     if args.json:
-        _emit(out, True); return 0
+        _emit(out, True); return 0 if out.get("ok") else 1
+    if not out.get("ok"):
+        msg = out.get("error", "unknown error")
+        hint = out.get("hint", "")
+        if console:
+            console.print(f"[bold red]✗[/] status unavailable: {msg}")
+            if hint:
+                console.print(f"  [dim]{hint}[/]")
+        else:
+            print(f"✗ status unavailable: {msg}", file=sys.stderr)
+            if hint:
+                print(f"  {hint}", file=sys.stderr)
+        return 1
     a = out["aliveness"]
     bands = out["in_band"]
     tbl = Table(show_header=True, header_style="bold", box=None, padding=(0, 2))
