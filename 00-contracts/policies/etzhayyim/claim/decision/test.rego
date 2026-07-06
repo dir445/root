@@ -20,18 +20,53 @@ _base_input := {
 test_wins_when_evidence_valid if {
     wins with input as object.union(_base_input, {
         "evidenceCid": _cid_nonzero,
-        "evidence": { "statement": "The AI model produced a hallucination in case XYZ-123." },
+        "evidence": {
+            "statement": "The AI model produced a hallucination in case XYZ-123.",
+            "attestation": {
+                "claimantDid": "did:example:claimant",
+                "signature": "ed25519:example-signature",
+                "contentHash": "sha256:abc123",
+            },
+        },
     })
 }
 
 test_decision_wins_when_evidence_valid if {
     inp := object.union(_base_input, {
         "evidenceCid": _cid_nonzero,
-        "evidence": { "statement": "The AI model produced a hallucination in case XYZ-123." },
+        "evidence": {
+            "statement": "The AI model produced a hallucination in case XYZ-123.",
+            "attestation": {
+                "claimantDid": "did:example:claimant",
+                "signature": "ed25519:example-signature",
+                "contentHash": "sha256:abc123",
+            },
+        },
     })
     d := decision with input as inp
     d.wins == true
     d.reason == "evidence-valid"
+}
+
+test_challenger_wins_when_evidence_is_only_a_statement if {
+    not wins with input as object.union(_base_input, {
+        "evidenceCid": _cid_nonzero,
+        "evidence": { "statement": "The AI model produced a hallucination in case XYZ-123." },
+    })
+}
+
+test_wins_when_structured_signed_evidence_is_present if {
+    wins with input as object.union(_base_input, {
+        "evidenceCid": _cid_nonzero,
+        "evidence": {
+            "statement": "The AI model produced a hallucination in case XYZ-123.",
+            "attestation": {
+                "claimantDid": "did:example:claimant",
+                "signature": "ed25519:example-signature",
+                "contentHash": "sha256:abc123",
+            },
+        },
+    })
 }
 
 # ── challenger wins: no CID ───────────────────────────────────────────────────
