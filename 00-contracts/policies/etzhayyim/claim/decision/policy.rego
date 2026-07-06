@@ -17,14 +17,15 @@ package etzhayyim.claim.decision
 #   }}
 #
 # Decision rules (V1 — minimal substantiation bar):
-#   CLAIMANT WINS  — evidence CID is non-zero AND evidence.statement is a
-#                    non-empty string. The claim is substantiated.
+#   CLAIMANT WINS  — evidence CID is non-zero AND the evidence bundle contains
+#                    a substantive statement plus a structured attestation
+#                    envelope (claimant DID / signature / content hash).
 #   CHALLENGER WINS — any other case: no CID, unreachable IPFS, or evidence
-#                    JSON is missing the statement field.
+#                    JSON is missing the statement or the attestation envelope.
 #
 # This policy is deliberately conservative: a challenger who puts up a
 # counter-bond wins by default unless the claimant can produce real content.
-# Phase 2 will extend this with DID authority checks and content classifiers.
+# Phase 2 will extend this with full DID verification and content classifiers.
 
 default wins := false
 default reason := "challenger-wins-default"
@@ -46,11 +47,27 @@ _evidence_has_statement if {
     count(input.evidence.statement) > 10
 }
 
+_evidence_has_attestation if {
+    _evidence_present
+    is_object(input.evidence.attestation)
+    is_string(input.evidence.attestation.claimantDid)
+    count(input.evidence.attestation.claimantDid) > 0
+    is_string(input.evidence.attestation.signature)
+    count(input.evidence.attestation.signature) > 0
+    is_string(input.evidence.attestation.contentHash)
+    count(input.evidence.attestation.contentHash) > 0
+}
+
+_evidence_substantiated if {
+    _evidence_has_statement
+    _evidence_has_attestation
+}
+
 # ── Decision ─────────────────────────────────────────────────────────────────
 
 wins if {
     not _zero_cid
-    _evidence_has_statement
+    _evidence_substantiated
 }
 
 # ── Reason ───────────────────────────────────────────────────────────────────
@@ -75,6 +92,14 @@ reason := "evidence-missing-statement" if {
     not _zero_cid
     _evidence_present
     not _evidence_has_statement
+}
+
+reason := "evidence-missing-attestation" if {
+    not wins
+    not _zero_cid
+    _evidence_present
+    _evidence_has_statement
+    not _evidence_has_attestation
 }
 
 # ── Top-level result consumed by the settler ──────────────────────────────────
