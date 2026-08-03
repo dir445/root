@@ -42,6 +42,22 @@ import { verifyCarToBytes } from "./car";
 import { fetchOnChainVm } from "./erc725";
 import { handleVerifyCacao, handleAccountWrite } from "./session";
 
+// kotoba wasm assets — served through Worker to ensure HSTS headers (Issue #1561)
+// The Cloudflare [assets] binding serves static files from edge cache without
+// invoking the Worker, so we bundle these assets in the Worker and serve them
+// with proper security headers including Strict-Transport-Security.
+// Type declarations for asset imports (inline to avoid new file under frozen layer)
+declare module "./kotoba-wasm/kotoba_wasm.js" {
+  const content: string;
+  export default content;
+}
+declare module "./kotoba-wasm/kotoba_wasm_bg.wasm" {
+  const content: Uint8Array;
+  export default content;
+}
+import kotobaWasmJs from "./kotoba-wasm/kotoba_wasm.js";
+import kotobaWasmBg from "./kotoba-wasm/kotoba_wasm_bg.wasm";
+
 /**
  * etzhayyim did:web Worker + apex reverse proxy
  *
@@ -1408,6 +1424,50 @@ a{color:inherit}
           "x-content-type-options": "nosniff",
           "content-security-policy":
             "default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; base-uri 'none'; form-action 'none'",
+          "strict-transport-security": "max-age=31536000; includeSubDomains",
+          "permissions-policy": PERMISSIONS_POLICY,
+          "x-etzhayyim-no-cookie": "1",
+        },
+      });
+    }
+
+    // ──────────────────────────────────────────────────────────────────
+    // kotoba wasm assets — serve through Worker to ensure HSTS headers
+    // (Issue #1561). These were previously served via [assets] binding
+    // from public/kotoba/ which bypassed the Worker and missed security headers.
+    // ──────────────────────────────────────────────────────────────────
+    if (url.pathname === "/kotoba/kotoba_wasm.js") {
+      if (request.method !== "GET" && request.method !== "HEAD") {
+        return new Response("Method Not Allowed", {
+          status: 405,
+          headers: { allow: "GET, HEAD" },
+        });
+      }
+      return new Response(kotobaWasmJs, {
+        status: 200,
+        headers: {
+          "content-type": "application/javascript; charset=utf-8",
+          "cache-control": "public, max-age=31536000, immutable",
+          "x-content-type-options": "nosniff",
+          "strict-transport-security": "max-age=31536000; includeSubDomains",
+          "permissions-policy": PERMISSIONS_POLICY,
+          "x-etzhayyim-no-cookie": "1",
+        },
+      });
+    }
+    if (url.pathname === "/kotoba/kotoba_wasm_bg.wasm") {
+      if (request.method !== "GET" && request.method !== "HEAD") {
+        return new Response("Method Not Allowed", {
+          status: 405,
+          headers: { allow: "GET, HEAD" },
+        });
+      }
+      return new Response(kotobaWasmBg, {
+        status: 200,
+        headers: {
+          "content-type": "application/wasm",
+          "cache-control": "public, max-age=31536000, immutable",
+          "x-content-type-options": "nosniff",
           "strict-transport-security": "max-age=31536000; includeSubDomains",
           "permissions-policy": PERMISSIONS_POLICY,
           "x-etzhayyim-no-cookie": "1",
